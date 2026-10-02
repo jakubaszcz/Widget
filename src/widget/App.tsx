@@ -1,14 +1,19 @@
 import "../App.css";
 import {X} from "lucide-react";
+import NoteWidget from "./natives/NoteWidget.tsx";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 
 function App() {
 
-    const window = getCurrentWindow();
+    let appWindow = getCurrentWindow();
+
+    const widgetType = new URLSearchParams(window.location.search)
+        .get("widget");
+
 
     async function closeWindow() {
         try {
-            await window.close()
+            await appWindow.close()
         } catch (e) {
             console.error(e)
         }
@@ -36,7 +41,10 @@ function App() {
               </div>
           </header>
           <section className="min-h-0 flex-1 overflow-auto, p-3">
-
+              <section className="min-h-0 flex-1 overflow-auto">
+                  {widgetType === "note" && <NoteWidget />}
+                  {widgetType === "time" && <p>Time</p>}
+              </section>
           </section>
       </main>
   );

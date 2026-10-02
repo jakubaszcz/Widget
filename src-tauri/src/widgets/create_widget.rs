@@ -1,17 +1,31 @@
 ﻿use std::sync::atomic::{AtomicUsize, Ordering};
+use log::error;
+use tauri::webview::cookie::time::Error;
 use crate::widgets::attach_widget::attach_widget;
 
 static NEXT_WIDGET_ID: AtomicUsize = AtomicUsize::new(1);
-pub fn create_widget(app: &tauri::AppHandle) -> tauri::Result<()> {
+pub fn create_widget(
+    app: &tauri::AppHandle,
+    config: crate::types::widgets::CreateWidget) -> tauri::Result<()> {
     let id  = NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed);
 
+    let url = match config.widget.as_str() {
+        "note" => "widget.html?widget=note",
+        "time" => "widget.html?widget=time",
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Type de widget inconnu : {}", config.widget),
+            ).into());
+        }
+    };
     let window = tauri::WebviewWindowBuilder::new(
         app,
         format!("widget_{id}"),
-        tauri::WebviewUrl::App("widget.html".into()),
+        tauri::WebviewUrl::App(url.into()),
     )
         .title(format!("Widget {id}"))
-        .inner_size(200.0, 120.0)
+        .inner_size(config.clone().size.unwrap().x as f64, config.clone().size.unwrap().y as f64)
         .decorations(false)
         .shadow(false)
         .transparent(true)
