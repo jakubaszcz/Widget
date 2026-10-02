@@ -2,6 +2,7 @@ import "../App.css";
 import {X} from "lucide-react";
 import NoteWidget from "./natives/NoteWidget.tsx";
 import {getCurrentWindow} from "@tauri-apps/api/window";
+import TimeWidget from "./natives/TimeWidget.tsx";
 
 function App() {
 
@@ -40,10 +41,10 @@ function App() {
                   </button>
               </div>
           </header>
-          <section className="min-h-0 flex-1 overflow-auto, p-3">
+          <section className="min-h-0 flex-1 overflow-auto, p-3d">
               <section className="min-h-0 flex-1 overflow-auto">
                   {widgetType === "note" && <NoteWidget />}
-                  {widgetType === "time" && <p>Time</p>}
+                  {widgetType === "time" && <TimeWidget />}
               </section>
           </section>
       </main>
