@@ -1,6 +1,7 @@
 ﻿use tauri::App;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
+use crate::tray::create_widget_creator::create_widget_creator;
 use crate::widgets::create_widget::create_widget;
 
 pub fn init(app: &mut App) {
@@ -24,7 +25,7 @@ pub fn init(app: &mut App) {
                     let app = app.clone();
 
                     std::thread::spawn(move || {
-                        if let Err(error) = create_widget(&app) {
+                        if let Err(error) = create_widget_creator(&app) {
                             eprintln!("Création du widget impossible : {error}");
                         }
                     });

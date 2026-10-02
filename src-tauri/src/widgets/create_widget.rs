@@ -8,7 +8,7 @@ pub fn create_widget(app: &tauri::AppHandle) -> tauri::Result<()> {
     let window = tauri::WebviewWindowBuilder::new(
         app,
         format!("widget_{id}"),
-        tauri::WebviewUrl::App("index.html".into()),
+        tauri::WebviewUrl::App("widget.html".into()),
     )
         .title(format!("Widget {id}"))
         .inner_size(200.0, 120.0)

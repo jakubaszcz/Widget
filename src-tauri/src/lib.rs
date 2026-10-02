@@ -1,4 +1,4 @@
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::init;
 use windows_sys::w;
 use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
@@ -75,6 +75,12 @@ unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
     Ok(())
 }*/
 
+#[tauri::command]
+async fn create_widget(app: AppHandle) -> Result<(), String> {
+    widgets::create_widget::create_widget(&app)
+        .map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -83,6 +89,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
+        .invoke_handler(tauri::generate_handler![create_widget])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {

@@ -1,4 +1,4 @@
-import "./App.css";
+import "../App.css";
 import {X} from "lucide-react";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 
