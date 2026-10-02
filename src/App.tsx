@@ -1,7 +1,19 @@
 import "./App.css";
-import {Ellipsis} from "lucide-react";
+import {X} from "lucide-react";
+import {getCurrentWindow} from "@tauri-apps/api/window";
 
 function App() {
+
+    const window = getCurrentWindow();
+
+    async function closeWindow() {
+        try {
+            await window.close()
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
   return (
       <main className="group h-screen w-full flex flex-col overflow-hidden justify-center items-center">
           <header className="flex shrink-0 items-center">
@@ -16,10 +28,10 @@ function App() {
                   <button
                       type="button"
                       aria-label="Options du widget"
-                      onClick={() => {}}
+                      onClick={() => closeWindow()}
                       className="flex h-full shrink-0 cursor-pointer items-center justify-center text-white opacity-40 group-hover:opacity-100 duration-300 transition-all"
                   >
-                      <Ellipsis size={16} />
+                      <X size={16} />
                   </button>
               </div>
           </header>
