@@ -34,6 +34,19 @@ pub fn create_widget(
         .visible(false)
         .build()?;
 
+    let label = window.label().to_string();
+
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Moved(position) = event {
+            println!(
+                "Widget {} déplacé : x={}, y={}",
+                label,
+                position.x,
+                position.y
+            );
+        }
+    });
+
     let widget = window.clone();
 
     if let Err(error) = window.run_on_main_thread(move || {
