@@ -1,12 +1,14 @@
 ﻿use std::sync::atomic::{AtomicUsize, Ordering};
 use log::error;
 use tauri::webview::cookie::time::Error;
+use crate::inits::manifest::manifest::{add_widget};
+use crate::types::manifest::manifest::{Manifest, ManifestWidget, Vector2};
 use crate::widgets::attach_widget::attach_widget;
 
 static NEXT_WIDGET_ID: AtomicUsize = AtomicUsize::new(1);
 pub fn create_widget(
     app: &tauri::AppHandle,
-    config: crate::types::widgets::CreateWidget) -> tauri::Result<()> {
+    config: crate::types::widgets::widgets::CreateWidget) -> tauri::Result<()> {
     let id  = NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed);
 
     let url = match config.widget.as_str() {
@@ -48,6 +50,20 @@ pub fn create_widget(
     });
 
     let widget = window.clone();
+
+    add_widget(ManifestWidget {
+        id: id.to_string(),
+        widget_type: config.widget.to_string(),
+        size: Vector2 {
+            x: config.clone().size.unwrap().x,
+            y: config.clone().size.unwrap().y,
+        },
+        position: Vector2 {
+            x: config.clone().size.unwrap().x,
+            y: config.clone().size.unwrap().y,
+        },
+        data: Default::default(),
+    }).unwrap();
 
     if let Err(error) = window.run_on_main_thread(move || {
         if let Err(error) = attach_widget(&widget) {

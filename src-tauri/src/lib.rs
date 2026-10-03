@@ -7,6 +7,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowLongPtrW
 mod tray;
 mod widgets;
 mod types;
+
+mod inits;
+mod global;
 /*#[cfg(target_os = "windows")]
 unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 
@@ -79,7 +82,7 @@ unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 #[tauri::command]
 async fn create_widget(
     app: AppHandle,
-    config: types::widgets::CreateWidget,
+    config: types::widgets::widgets::CreateWidget,
 ) -> Result<(), String> {
     println!("{:?}", config);
     widgets::create_widget::create_widget(&app, config)
@@ -87,6 +90,9 @@ async fn create_widget(
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+
+    inits::inits::inits();
+
     tauri::Builder::default()
         .setup(|app| {
             tray::tray::init(app);
