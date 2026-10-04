@@ -6,18 +6,15 @@ use crate::types::manifest::manifest::{Manifest, ManifestWidget, Vector2};
 use crate::widgets::attach_widget::attach_widget;
 
 static NEXT_WIDGET_ID: AtomicUsize = AtomicUsize::new(1);
-pub fn create_widget(
-    app: &tauri::AppHandle,
-    config: crate::types::widgets::widgets::CreateWidget) -> tauri::Result<()> {
-    let id  = NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed);
 
-    let url = match config.widget.as_str() {
+pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size: Vector2, _position: Vector2) -> tauri::Result<()> {
+    let url = match widget_type.to_lowercase().as_str() {
         "note" => "widget.html?widget=note",
         "time" => "widget.html?widget=time",
         _ => {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                format!("Type de widget inconnu : {}", config.widget),
+                format!("Type de widget inconnu : {}", widget_type.to_lowercase()),
             ).into());
         }
     };
@@ -27,7 +24,7 @@ pub fn create_widget(
         tauri::WebviewUrl::App(url.into()),
     )
         .title(format!("Widget {id}"))
-        .inner_size(config.clone().size.unwrap().x as f64, config.clone().size.unwrap().y as f64)
+        .inner_size(size.x as f64, size.y as f64)
         .decorations(false)
         .shadow(false)
         .transparent(true)
@@ -51,6 +48,29 @@ pub fn create_widget(
 
     let widget = window.clone();
 
+    if let Err(error) = window.run_on_main_thread(move || {
+        if let Err(error) = attach_widget(&widget) {
+            eprintln!("Error attaching widget {id}: {}", error);
+            let _ = widget.destroy();
+        }
+    }) {
+        let _ = window.destroy();
+        return Err(error);
+    }
+    Ok(())
+}
+pub fn create_widget(
+    app: &tauri::AppHandle,
+    config: crate::types::widgets::widgets::CreateWidget) -> tauri::Result<()> {
+    let id  = NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed);
+
+    load_widget(app, id.to_string(), config.widget.clone(), Vector2 {
+        x: config.clone().size.unwrap().x,
+        y: config.clone().size.unwrap().y,
+    },
+    Vector2 { x: 0, y: 0 }
+    )?;
+
     add_widget(ManifestWidget {
         id: id.to_string(),
         widget_type: config.widget.to_string(),
@@ -64,15 +84,5 @@ pub fn create_widget(
         },
         data: Default::default(),
     }).unwrap();
-
-    if let Err(error) = window.run_on_main_thread(move || {
-        if let Err(error) = attach_widget(&widget) {
-            eprintln!("Error attaching widget {id}: {}", error);
-            let _ = widget.destroy();
-        }
-    }) {
-        let _ = window.destroy();
-        return Err(error);
-    }
     Ok(())
 }

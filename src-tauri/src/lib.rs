@@ -96,6 +96,7 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             tray::tray::init(app);
+            widgets::load_widget::load_widgets(app.handle())?;
             Ok(())
         })
         .plugin(init())
