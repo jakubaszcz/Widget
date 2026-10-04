@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 use crate::global::global::{APPDATA, MANIFEST};
 use crate::types::manifest::manifest::{Manifest, ManifestWidget};
 
-fn write(path: &Path, manifest: &Manifest) -> Result<(), String> {
+pub fn write(path: &Path, manifest: &Manifest) -> Result<(), String> {
+    println!("Writing manifest {}", path.display());
     let bytes = serde_json::to_vec_pretty(manifest).map_err(|e| e.to_string())?;
     let mut file = tempfile::NamedTempFile::new_in(path.parent().ok_or("Missing parent directory")?)
         .map_err(|e| e.to_string())?;

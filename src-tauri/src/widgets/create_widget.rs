@@ -1,13 +1,14 @@
 ﻿use std::sync::atomic::{AtomicUsize, Ordering};
 use log::error;
 use tauri::webview::cookie::time::Error;
+use crate::global::global::MANIFEST;
 use crate::inits::manifest::manifest::{add_widget};
 use crate::types::manifest::manifest::{Manifest, ManifestWidget, Vector2};
 use crate::widgets::attach_widget::attach_widget;
 
 static NEXT_WIDGET_ID: AtomicUsize = AtomicUsize::new(1);
 
-pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size: Vector2, _position: Vector2) -> tauri::Result<()> {
+pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size: Vector2, position: Vector2) -> tauri::Result<()> {
     let url = match widget_type.to_lowercase().as_str() {
         "note" => "widget.html?widget=note",
         "time" => "widget.html?widget=time",
@@ -25,6 +26,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
     )
         .title(format!("Widget {id}"))
         .inner_size(size.x as f64, size.y as f64)
+        .position(position.x as f64, position.y as f64)
         .decorations(false)
         .shadow(false)
         .transparent(true)
@@ -34,15 +36,17 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
         .build()?;
 
     let label = window.label().to_string();
+    let widget_id = id.clone();
 
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Moved(position) = event {
-            println!(
-                "Widget {} déplacé : x={}, y={}",
-                label,
-                position.x,
-                position.y
-            );
+            let manifest = &mut MANIFEST.get().unwrap().lock().unwrap();
+
+            if let Some(widget) = manifest.widgets.iter_mut().find(|widget| widget.id == widget_id) {
+                widget.position.x = position.x;
+                widget.position.y = position.y;
+
+            }
         }
     });
 

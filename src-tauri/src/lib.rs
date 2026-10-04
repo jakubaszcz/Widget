@@ -3,6 +3,7 @@ use tauri_plugin_opener::init;
 use windows_sys::w;
 use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
 use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowLongPtrW, SetParent, SetWindowLongPtrW, GWL_EXSTYLE, GWL_STYLE, SWP_FRAMECHANGED, SWP_SHOWWINDOW, WS_CHILD, WS_EX_APPWINDOW, WS_EX_TOOLWINDOW, WS_POPUP};
+use crate::manifest::auto_save;
 
 mod tray;
 mod widgets;
@@ -10,6 +11,7 @@ mod types;
 
 mod inits;
 mod global;
+mod manifest;
 /*#[cfg(target_os = "windows")]
 unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 
@@ -97,6 +99,7 @@ pub fn run() {
         .setup(|app| {
             tray::tray::init(app);
             widgets::load_widget::load_widgets(app.handle())?;
+            auto_save::auto_save();
             Ok(())
         })
         .plugin(init())

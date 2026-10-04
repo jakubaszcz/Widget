@@ -1,19 +1,19 @@
 ﻿use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 
 pub struct Vector2 {
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Manifest {
     pub widgets: Vec<ManifestWidget>
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 
 pub struct ManifestWidget {
     pub id: String,
