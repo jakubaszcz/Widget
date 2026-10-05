@@ -1,9 +1,7 @@
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::init;
-use windows_sys::w;
-use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
-use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowLongPtrW, SetParent, SetWindowLongPtrW, GWL_EXSTYLE, GWL_STYLE, SWP_FRAMECHANGED, SWP_SHOWWINDOW, WS_CHILD, WS_EX_APPWINDOW, WS_EX_TOOLWINDOW, WS_POPUP};
 use crate::manifest::auto_save;
+use crate::types::widgets::data::note_widget::NoteData;
 
 mod tray;
 mod widgets;
@@ -82,11 +80,17 @@ unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 }*/
 
 #[tauri::command]
+fn save_note_widget(id: String, data: NoteData) -> Result<(), String> {
+    println!("Widget: {id}, data: {data:?}");
+    inits::manifest::widgets::widget_manifest::init(id, &data)?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn create_widget(
     app: AppHandle,
     config: types::widgets::widgets::CreateWidget,
 ) -> Result<(), String> {
-    println!("{:?}", config);
     widgets::create_widget::create_widget(&app, config)
         .map_err(|error| error.to_string())
 }
@@ -103,7 +107,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
-        .invoke_handler(tauri::generate_handler![create_widget])
+        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {

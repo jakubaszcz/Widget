@@ -13,7 +13,7 @@ pub fn auto_save() {
             let new = MANIFEST.get().unwrap().lock().unwrap().clone();
             if new != previous {
                 println!("Data changed");
-                match inits::manifest::manifest::write(&data.join("manifest.json"), &new) {
+                match inits::manifest::manifest::write_manifest(&data.join("manifest.json"), &new) {
                     Ok(()) => previous = new,
                     Err(error) => eprintln!("Erreur de sauvegarde : {error}"),
                 }

@@ -36,7 +36,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
         .build()?;
 
     let label = window.label().to_string();
-    let widget_id = id.clone();
+    let widget_id = format!("widget_{id}");
 
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Moved(position) = event {
@@ -76,7 +76,7 @@ pub fn create_widget(
     )?;
 
     add_widget(ManifestWidget {
-        id: id.to_string(),
+        id: format!("widget_{}", id),
         widget_type: config.widget.to_string(),
         size: Vector2 {
             x: config.clone().size.unwrap().x,

@@ -1,0 +1,3 @@
+﻿interface Note {
+    content: string
+}

@@ -5,8 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::global::global::{APPDATA, MANIFEST};
 use crate::types::manifest::manifest::{Manifest, ManifestWidget};
 
-pub fn write(path: &Path, manifest: &Manifest) -> Result<(), String> {
-    println!("Writing manifest {}", path.display());
+pub fn write_manifest(path: &Path, manifest: &Manifest) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(manifest).map_err(|e| e.to_string())?;
     let mut file = tempfile::NamedTempFile::new_in(path.parent().ok_or("Missing parent directory")?)
         .map_err(|e| e.to_string())?;
@@ -21,7 +20,7 @@ fn load(path: &PathBuf) -> Result<Manifest, String> {
             .map_err(|err| err.to_string()),
         Err(err) if err.kind() == ErrorKind::NotFound => {
             let manifest = Manifest::default();
-            write(path, &manifest)?;
+            write_manifest(path, &manifest)?;
             Ok(manifest)
         }
         Err(err) => Err(err.to_string()),
@@ -47,7 +46,7 @@ pub fn add_widget(widget: ManifestWidget) -> Result<(), String> {
     next.widgets.push(widget);
 
     let appdata = APPDATA.get().ok_or("Appdata not initialized")?;
-    write(&appdata.data.join("manifest.json"), &next)?;
+    write_manifest(&appdata.data.join("manifest.json"), &next)?;
 
     *current = next;
 
