@@ -31,6 +31,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
         .shadow(false)
         .transparent(true)
         .resizable(false)
+        .maximizable(false)
         .skip_taskbar(true)
         .visible(false)
         .build()?;
@@ -45,7 +46,15 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
             if let Some(widget) = manifest.widgets.iter_mut().find(|widget| widget.id == widget_id) {
                 widget.position.x = position.x;
                 widget.position.y = position.y;
+            }
+        }
 
+        if let tauri::WindowEvent::Resized(size) = event {
+            let manifest = &mut MANIFEST.get().unwrap().lock().unwrap();
+
+            if let Some(widget) = manifest.widgets.iter_mut().find(|widget| widget.id == widget_id) {
+                widget.size.x = size.width as i32;
+                widget.size.y = size.height as i32;
             }
         }
     });

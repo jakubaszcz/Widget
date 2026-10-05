@@ -1,7 +1,8 @@
 import "../App.css";
-import {Ellipsis, Pencil, X} from "lucide-react";
+import {Ellipsis, Pencil, Ruler, X} from "lucide-react";
 import NoteWidget from "./natives/NoteWidget.tsx";
 import {getCurrentWindow} from "@tauri-apps/api/window";
+import {PhysicalSize} from "@tauri-apps/api/dpi";
 import TimeWidget from "./natives/TimeWidget.tsx";
 import {useEffect, useRef, useState} from "react";
 
@@ -12,6 +13,16 @@ function App() {
     const noteRef = useRef<HTMLTextAreaElement>(null);
     const restoreOptionsFocus = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
+    const resizeDrag = useRef<{
+        pointerId: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        scale: number;
+    } | null>(null);
+    const pendingSize = useRef<PhysicalSize | null>(null);
+    const applyingSize = useRef(false);
     const iconButtonClass = "flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-white opacity-40 transition-opacity duration-300 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/60";
 
     useEffect(() => {
@@ -57,9 +68,77 @@ function App() {
         }
     }
 
+    async function applyPendingSize() {
+        if (applyingSize.current) return;
+        applyingSize.current = true;
+        try {
+            while (pendingSize.current) {
+                const size = pendingSize.current;
+                pendingSize.current = null;
+                await appWindow.setSize(size);
+            }
+        } catch (e) {
+            pendingSize.current = null;
+            console.error(e);
+        } finally {
+            applyingSize.current = false;
+        }
+    }
+
+    function resizeWindow(event: React.PointerEvent<HTMLButtonElement>) {
+        const drag = resizeDrag.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        pendingSize.current = new PhysicalSize(
+            Math.round(Math.max(120 * drag.scale, drag.width + (event.screenX - drag.x) * drag.scale)),
+            Math.round(Math.max(80 * drag.scale, drag.height + (event.screenY - drag.y) * drag.scale)),
+        );
+        void applyPendingSize();
+    }
+
   return (
       <main className="group h-screen w-full flex flex-col overflow-hidden justify-center items-center">
-          <header className="flex shrink-0 items-center">
+          <header className="relative flex w-full shrink-0 items-center justify-center">
+              <button
+                  type="button"
+                  title="Maintenir et glisser pour redimensionner"
+                  aria-label="Redimensionner le widget"
+                  onPointerDown={async (event) => {
+                      if (event.button !== 0 || !event.isPrimary) return;
+
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setOptionsOpen(false);
+                      const button = event.currentTarget;
+                      const {pointerId, screenX, screenY} = event;
+                      button.setPointerCapture(pointerId);
+                      try {
+                          const [size, scale] = await Promise.all([
+                              appWindow.innerSize(), appWindow.scaleFactor(),
+                          ]);
+                          if (!button.hasPointerCapture(pointerId)) return;
+                          resizeDrag.current = {
+                              pointerId, x: screenX, y: screenY,
+                              width: size.width, height: size.height, scale,
+                          };
+                      } catch (error) {
+                          if (button.hasPointerCapture(pointerId)) button.releasePointerCapture(pointerId);
+                          console.error(error);
+                      }
+                  }}
+                  onPointerMove={resizeWindow}
+                  onPointerUp={(event) => {
+                      resizeWindow(event);
+                      resizeDrag.current = null;
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                          event.currentTarget.releasePointerCapture(event.pointerId);
+                      }
+                  }}
+                  onPointerCancel={() => { resizeDrag.current = null; }}
+                  onLostPointerCapture={() => { resizeDrag.current = null; }}
+                  className="absolute left-1 top-0.5 flex h-5 w-5 shrink-0 touch-none select-none cursor-nwse-resize items-center justify-center rounded text-white opacity-40 group-hover:opacity-100 focus-visible:opacity-100 duration-300 transition-opacity"
+              >
+                  <Ruler size={16} />
+              </button>
               <div
                   ref={optionsRef}
                   onBlur={(event) => {
