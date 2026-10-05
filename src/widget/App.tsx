@@ -199,15 +199,15 @@ function App() {
                   )}
               </div>
           </header>
-          <section className="min-h-0 flex-1 overflow-auto, p-3d">
-              <section className="min-h-0 flex-1 overflow-auto">
-                  {widgetType === "note" && <NoteWidget
+          <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+              {widgetType === "note" && (
+                  <NoteWidget
                       inputRef={noteRef}
                       isEditing={isEditing}
                       onFinishEditing={() => setIsEditing(false)}
-                  />}
-                  {widgetType === "time" && <TimeWidget />}
-              </section>
+                  />
+              )}
+              {widgetType === "time" && <TimeWidget />}
           </section>
       </main>
   );

@@ -28,7 +28,7 @@ export default function NoteWidget({
     }, []);
 
     return (
-        <div>
+        <div className="flex h-full min-h-0 w-full flex-col">
     <textarea
         ref={inputRef}
         readOnly={!isEditing}
