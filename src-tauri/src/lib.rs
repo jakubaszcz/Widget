@@ -1,5 +1,8 @@
+use std::fs;
+use std::io::ErrorKind;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::init;
+use crate::global::global::APPDATA;
 use crate::manifest::auto_save;
 use crate::types::widgets::data::note_widget::NoteData;
 
@@ -94,6 +97,23 @@ async fn create_widget(
     widgets::create_widget::create_widget(&app, config)
         .map_err(|error| error.to_string())
 }
+
+#[tauri::command]
+fn load_widget_data(id: String) -> Result<Option<serde_json::Value>, String> {
+    let cache = &APPDATA.get().unwrap().cache;
+    let path = cache.join(format!("{id}.json"));
+
+    match fs::read(path) {
+        Ok(contents) => {
+            let data = serde_json::from_slice::<serde_json::Value>(&contents)
+                .map_err(|err| err.to_string())?;
+
+            Ok(Some(data))
+        }
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err.to_string()),
+    }
+}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
 
@@ -107,7 +127,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
-        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget])
+        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {

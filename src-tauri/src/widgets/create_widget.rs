@@ -21,7 +21,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
     };
     let window = tauri::WebviewWindowBuilder::new(
         app,
-        format!("widget_{id}"),
+        id.to_string(),
         tauri::WebviewUrl::App(url.into()),
     )
         .title(format!("Widget {id}"))
@@ -36,7 +36,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
         .build()?;
 
     let label = window.label().to_string();
-    let widget_id = format!("widget_{id}");
+    let widget_id = id.clone();
 
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Moved(position) = event {
@@ -66,7 +66,10 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
 pub fn create_widget(
     app: &tauri::AppHandle,
     config: crate::types::widgets::widgets::CreateWidget) -> tauri::Result<()> {
-    let id  = NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed);
+    let id = format!(
+        "widget_{}",
+        NEXT_WIDGET_ID.fetch_add(1, Ordering::Relaxed)
+    );
 
     load_widget(app, id.to_string(), config.widget.clone(), Vector2 {
         x: config.clone().size.unwrap().x,

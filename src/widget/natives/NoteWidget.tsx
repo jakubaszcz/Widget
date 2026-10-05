@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 
@@ -13,6 +13,19 @@ export default function NoteWidget({
 })  {
     const [text, setText] = useState("");
     const window = getCurrentWindow().label;
+
+    useEffect(() => {
+        async function load() {
+            try {
+                let response = await invoke<Note | null>("load_widget_data", {id: window})
+                // @ts-ignore
+                setText(response?.content)
+            } catch (e) {
+                console.error(e)
+            }
+        }
+        load();
+    }, []);
 
     return (
         <div>
