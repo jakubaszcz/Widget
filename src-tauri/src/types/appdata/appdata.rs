@@ -2,4 +2,5 @@
 
 pub struct Appdata {
     pub data: PathBuf,
+    pub cache: PathBuf
 }

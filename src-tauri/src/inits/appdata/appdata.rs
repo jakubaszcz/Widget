@@ -13,8 +13,9 @@ pub fn init() -> Appdata {
     ).unwrap();
 
     let data = directories.data_dir().to_path_buf();
+    let cache = directories.cache_dir().to_path_buf();
 
     println!("data: {:?}", &data);
 
-    Appdata { data }
+    Appdata { data, cache }
 }
