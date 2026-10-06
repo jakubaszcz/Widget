@@ -5,6 +5,7 @@ import {getCurrentWindow} from "@tauri-apps/api/window";
 import {PhysicalSize} from "@tauri-apps/api/dpi";
 import TimeWidget from "./natives/TimeWidget.tsx";
 import {useEffect, useRef, useState} from "react";
+import {invoke} from "@tauri-apps/api/core";
 
 function App() {
     const [optionsOpen, setOptionsOpen] = useState(false);
@@ -59,9 +60,9 @@ function App() {
         .get("widget");
 
 
-    async function closeWindow() {
-        setOptionsOpen(false);
+    async function deleteWidget() {
         try {
+            await invoke("delete_widget", {id: appWindow.label})
             await appWindow.close()
         } catch (e) {
             console.error(e)
@@ -189,11 +190,11 @@ function App() {
 
                           <button
                               type="button"
-                              onClick={closeWindow}
+                              onClick={deleteWidget}
                               className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
                           >
                               <X size={14} />
-                              Close
+                              Delete
                           </button>
                       </div>
                   )}

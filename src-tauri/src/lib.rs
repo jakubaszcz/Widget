@@ -2,7 +2,7 @@ use std::fs;
 use std::io::ErrorKind;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::init;
-use crate::global::global::APPDATA;
+use crate::global::global::{APPDATA, MANIFEST};
 use crate::manifest::auto_save;
 use crate::types::widgets::data::note_widget::NoteData;
 
@@ -114,6 +114,31 @@ fn load_widget_data(id: String) -> Result<Option<serde_json::Value>, String> {
         Err(err) => Err(err.to_string()),
     }
 }
+
+#[tauri::command]
+fn delete_widget(id: String) -> Result<(), String> {
+    let mut manifest = MANIFEST.get().unwrap().lock()
+        .map_err(|err| err.to_string())?;
+
+    if let Some(widget) = manifest.widgets.iter()
+        .find(|widget| widget.id == id)
+    {
+        if !widget.data.as_os_str().is_empty() {
+            match fs::remove_file(&widget.data) {
+                Ok(()) => {}
+                Err(err) if err.kind() == ErrorKind::NotFound => {}
+                Err(err) => return Err(err.to_string()),
+            }
+        }
+    }
+
+    manifest.widgets.retain(|widget| widget.id != id);
+
+    let path = APPDATA.get().unwrap().data.join("manifest.json");
+    inits::manifest::manifest::write_manifest(&path, &manifest)?;
+
+    Ok(())
+}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
 
@@ -127,7 +152,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
-        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data])
+        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data, delete_widget])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {

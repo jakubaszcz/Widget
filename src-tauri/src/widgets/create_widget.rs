@@ -88,7 +88,7 @@ pub fn create_widget(
     )?;
 
     add_widget(ManifestWidget {
-        id: format!("widget_{}", id),
+        id,
         widget_type: config.widget.to_string(),
         size: Vector2 {
             x: config.clone().size.unwrap().x,
