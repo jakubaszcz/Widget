@@ -1,6 +1,7 @@
 ﻿use std::sync::atomic::{AtomicUsize, Ordering};
 use log::error;
 use tauri::webview::cookie::time::Error;
+use tauri::window::Color;
 use crate::global::global::MANIFEST;
 use crate::inits::manifest::manifest::{add_widget};
 use crate::types::manifest::manifest::{Manifest, ManifestWidget, Vector2};
@@ -35,6 +36,10 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
         .skip_taskbar(true)
         .visible(false)
         .build()?;
+
+    window.set_background_color(Some(
+        Color(23, 23, 23, 255),
+    ))?;
 
     let label = window.label().to_string();
     let widget_id = id.clone();

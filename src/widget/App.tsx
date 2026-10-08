@@ -97,7 +97,7 @@ function App() {
     }
 
   return (
-      <main className="group h-screen w-full flex flex-col overflow-hidden justify-center items-center">
+      <main className="group h-screen w-full flex flex-col overflow-hidden justify-center items-center border border-secondary-800">
           <header className="relative flex w-full shrink-0 items-center justify-center">
               <button
                   type="button"
