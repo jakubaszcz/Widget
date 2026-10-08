@@ -1,8 +1,9 @@
 import "../App.css";
+import logo from "../../logo.png";
 import {invoke} from "@tauri-apps/api/core";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {useRef, useState, type FormEvent} from "react";
-import {Check, Clock3, LayoutGrid, LoaderCircle, Plus, StickyNote, X} from "lucide-react";
+import {Check, Clock3, LoaderCircle, Plus, StickyNote, X} from "lucide-react";
 import {Widgets} from "../widget/natives/widgets";
 
 const DEFAULT_SIZE = {x: 200, y: 200};
@@ -54,7 +55,7 @@ function App() {
         <main className="flex h-dvh w-full flex-col overflow-y-auto border border-secondary-800 bg-secondary-900 font-sans text-secondary-100">
             <header data-tauri-drag-region className="flex h-11 shrink-0 items-center justify-between border-b border-secondary-800 px-5">
                 <span className="pointer-events-none flex items-center gap-2 text-xs font-medium text-secondary-400">
-                    <LayoutGrid size={14} className="text-primary" /> Widget Creator
+                    <img src={logo} alt="Logo" className="size-[14px]" /> Widget Creator
                 </span>
                 <button type="button" aria-label="Close" onClick={() => void close()} className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-secondary-400 transition-colors hover:bg-secondary-800 hover:text-secondary-100 focus-visible:outline-2 focus-visible:outline-primary motion-reduce:transition-none">
                     <X size={16} />
