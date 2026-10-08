@@ -11,6 +11,7 @@ pub fn create_widget_creator(app: &tauri::AppHandle) -> tauri::Result<()> {
         .resizable(false)
         .shadow(false)
         .inner_size(500.0, 400.0)
+        .center()
         .build()?;
 
     Ok(())
