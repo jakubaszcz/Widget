@@ -12,9 +12,9 @@ export default function TimeWidget() {
     }, []);
 
     return (
-        <div className="flex h-full w-full items-center justify-center p-3 text-white">
-            <span className="text-3xl tabular-nums">
-                {time.toLocaleTimeString("fr-FR", {
+        <div className="flex h-full w-full items-center justify-center p-3 [container-type:inline-size]">
+            <span className="text-[clamp(24px,15cqi,120px)] tabular-nums whitespace-nowrap text-white">
+                {time.toLocaleTimeString("en-GB", {
                     hour: "2-digit",
                     minute: "2-digit",
                     second: "2-digit",

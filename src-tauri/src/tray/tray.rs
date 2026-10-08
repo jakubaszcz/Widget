@@ -5,7 +5,7 @@ use crate::tray::create_widget_creator::create_widget_creator;
 use crate::widgets::create_widget::create_widget;
 
 pub fn init(app: &mut App) {
-    let create = MenuItem::with_id(app, "create", "create widget", true, None::<&str>).unwrap();
+    let create = MenuItem::with_id(app, "create", "Create", true, None::<&str>).unwrap();
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>).unwrap();
     let menu = Menu::with_items(app, &[&create, &quit]).unwrap();
 
