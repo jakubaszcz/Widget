@@ -13,6 +13,7 @@ pub fn load_widget(app: &tauri::AppHandle, id: String, widget_type: String, size
     let url = match widget_type.to_lowercase().as_str() {
         "note" => "widget.html?widget=note",
         "time" => "widget.html?widget=time",
+        "extern" => "widget.html?widget=extern",
         _ => {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
@@ -102,6 +103,37 @@ pub fn create_widget(
         position: Vector2 {
             x: config.clone().size.unwrap().x,
             y: config.clone().size.unwrap().y,
+        },
+        data: Default::default(),
+    }).unwrap();
+    Ok(())
+}
+
+pub fn create_extern_widget(
+    app: &tauri::AppHandle,
+    id: String, widget_type: String, size: Vector2, position: Vector2) -> tauri::Result<()> {
+    let id = format!(
+        "widget_{}",
+        id
+    );
+
+    load_widget(app, id.to_string(), widget_type.clone(), Vector2 {
+        x: 100i32,
+        y: 100i32,
+    },
+                Vector2 { x: position.x, y: position.y },
+    )?;
+
+    add_widget(ManifestWidget {
+        id,
+        widget_type,
+        size: Vector2 {
+            x: 100i32,
+            y: 100i32,
+        },
+        position: Vector2 {
+            x: position.x,
+            y: position.y,
         },
         data: Default::default(),
     }).unwrap();

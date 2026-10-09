@@ -11,7 +11,7 @@ pub fn init(app: &mut App) {
 
     let tray = TrayIconBuilder::new()
         .menu(&menu)
-        .tooltip("Widget")
+        .tooltip("Wist")
         .icon(app.default_window_icon().expect("Failed to get default window icon").clone())
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => app.exit(0),

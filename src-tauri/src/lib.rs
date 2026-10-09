@@ -13,6 +13,8 @@ mod types;
 mod inits;
 mod global;
 mod manifest;
+mod integrations;
+mod server;
 /*#[cfg(target_os = "windows")]
 unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 
@@ -146,6 +148,9 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
+            if let Err(error) = integrations::start(app.handle().clone()) {
+                eprintln!("Wist discovery unavailable at {}: {error}", integrations::ADDRESS);
+            }
             tray::tray::init(app);
             widgets::load_widget::load_widgets(app.handle())?;
             auto_save::auto_save();
