@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use log::error;
 use tauri::webview::cookie::time::Error;
@@ -109,6 +111,28 @@ pub fn create_widget(
     Ok(())
 }
 
+fn copy_directory(source: &Path, destination: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(destination)?;
+
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let target = destination.join(entry.file_name());
+
+        if file_type.is_symlink() {
+            continue;
+        }
+
+        if file_type.is_dir() {
+            copy_directory(&entry.path(), &target)?;
+        } else if file_type.is_file() {
+            fs::copy(entry.path(), target)?;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn create_extern_widget(
     app: &tauri::AppHandle,
     id: String,
@@ -120,10 +144,20 @@ pub fn create_extern_widget(
 
     let id = format!("widget_{id}");
     let folder = APPDATA.get().unwrap().cache.join("templates").join(&id);
-    std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+
+    if !source.join("index.html").is_file() {
+        return Err("Le dossier doit contenir index.html".into());
+    }
+
+    if folder.canonicalize().map_err(|e| e.to_string())?
+        .starts_with(source.canonicalize().map_err(|e| e.to_string())?) {
+        return Err("La destination ne doit pas être dans le dossier source".into());
+    }
+
+    copy_directory(&source, &folder).map_err(|e| e.to_string())?;
 
     let html = folder.join("index.html");
-    std::fs::copy(source, &html).map_err(|e| e.to_string())?;
 
     add_widget(ManifestWidget {
         id: id.clone(),

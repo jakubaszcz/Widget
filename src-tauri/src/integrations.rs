@@ -28,7 +28,7 @@ pub fn start(app: AppHandle) -> std::io::Result<()> {
     let router = Router::new()
         .route("/health", get(health))
         .route("/widgets", post(register_widget))
-        .route("/templates/{id}/index.html", get(template_asset))
+        .route("/templates/{id}/{*file}", get(template_asset))
         .layer(DefaultBodyLimit::max(16 * 1024))
         .with_state(app)
         .layer(cors);
@@ -95,21 +95,37 @@ async fn register_widget(
 }
 
 async fn template_asset(
-    axum::extract::Path(id): axum::extract::Path<String>,
+    axum::extract::Path((id, file)): axum::extract::Path<(String, String)>,
 ) -> Result<impl axum::response::IntoResponse, StatusCode> {
     use crate::global::global::APPDATA;
+    use std::path::{Path, Component};
+    if file.contains(['\\', ':']) || !Path::new(&file).components().all(|c| matches!(c, Component::Normal(_))) {
+        return Err(StatusCode::FORBIDDEN);
+    }
     let entry = MANIFEST.get().unwrap().lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .widgets.iter().find(|w| w.id == id && w.widget_type == "extern")
         .map(|w| w.data.clone()).ok_or(StatusCode::NOT_FOUND)?;
     let cache = APPDATA.get().unwrap().cache.join("templates").canonicalize().map_err(|_| StatusCode::NOT_FOUND)?;
-    let path = entry.canonicalize().map_err(|_| StatusCode::NOT_FOUND)?;
-    if !path.starts_with(&cache) || !path.is_file() { return Err(StatusCode::FORBIDDEN); }
+    let root = entry.parent().ok_or(StatusCode::NOT_FOUND)?.canonicalize().map_err(|_| StatusCode::NOT_FOUND)?;
+    if !root.starts_with(&cache) { return Err(StatusCode::FORBIDDEN); }
+    let path = root.join(file).canonicalize().map_err(|_| StatusCode::NOT_FOUND)?;
+    if !path.starts_with(&root) || !path.is_file() { return Err(StatusCode::FORBIDDEN); }
+    let content_type = match path.extension().and_then(|v| v.to_str()).unwrap_or("").to_ascii_lowercase().as_str() {
+        "html" => "text/html; charset=utf-8",
+        "js" | "mjs" => "text/javascript; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "svg" => "image/svg+xml", "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg", "webp" => "image/webp",
+        "gif" => "image/gif", "ico" => "image/x-icon",
+        "woff" => "font/woff", "woff2" => "font/woff2", "ttf" => "font/ttf",
+        _ => return Err(StatusCode::FORBIDDEN),
+    };
     let bytes = std::fs::read(path).map_err(|_| StatusCode::NOT_FOUND)?;
     Ok(([
-        ("content-type", "text/html; charset=utf-8"),
+        ("content-type", content_type),
         ("x-content-type-options", "nosniff"),
         ("cache-control", "no-store"),
-        ("content-security-policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'"),
+        ("content-security-policy", "sandbox allow-scripts; default-src 'none'; script-src http://127.0.0.1:47832/templates/; style-src 'unsafe-inline' http://127.0.0.1:47832/templates/; img-src data: http://127.0.0.1:47832/templates/; font-src data: http://127.0.0.1:47832/templates/; connect-src http://127.0.0.1:47832/templates/; base-uri 'none'; form-action 'none'"),
         ("access-control-allow-origin", "*"),
     ], bytes))
 }
