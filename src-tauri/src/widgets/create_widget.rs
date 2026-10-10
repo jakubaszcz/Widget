@@ -141,8 +141,19 @@ pub fn create_extern_widget(
     source: std::path::PathBuf,
 ) -> Result<bool, String> {
     use crate::global::global::APPDATA;
+    use tauri::Manager;
 
     let id = format!("widget_{id}");
+    let existing = MANIFEST.get().unwrap().lock().map_err(|e| e.to_string())?
+        .widgets.iter().find(|w| w.id == id).cloned();
+    if let Some(widget) = existing {
+        if widget.widget_type != "extern" { return Err("Identifiant déjà utilisé".into()); }
+        if app.get_webview_window(&id).is_none() {
+            load_widget(app, id, widget.widget_type, widget.size, widget.position)
+                .map_err(|e| e.to_string())?;
+        }
+        return Ok(false);
+    }
     let folder = APPDATA.get().unwrap().cache.join("templates").join(&id);
     fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
 

@@ -1,13 +1,23 @@
 use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, Method, StatusCode},
-    routing::{get, post},
+    routing::{get, post, put},
     Json, Router,
 };
 use serde_json::{json, Value};
 use std::net::TcpListener;
 use axum::extract::State;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
+use std::sync::{Mutex, OnceLock};
+use std::collections::HashMap;
+
+static WIDGET_DATA: OnceLock<Mutex<HashMap<String, Value>>> = OnceLock::new();
+
+#[tauri::command]
+pub fn external_widget_data(window: tauri::Window) -> Result<Option<Value>, String> {
+    let data = WIDGET_DATA.get_or_init(Default::default).lock().map_err(|e| e.to_string())?;
+    Ok(data.get(window.label()).cloned())
+}
 use tower_http::cors::{Any, CorsLayer};
 use crate::global::global::MANIFEST;
 use crate::server::create_widget::RegisterWidget;
@@ -27,8 +37,10 @@ pub fn start(app: AppHandle) -> std::io::Result<()> {
 
     let router = Router::new()
         .route("/health", get(health))
+        .route("/events", get(crate::widget_actions::events))
         .route("/widgets", post(register_widget))
         .route("/templates/{id}/{*file}", get(template_asset))
+        .route("/widgets/{id}/data", put(update_widget))
         .layer(DefaultBodyLimit::max(16 * 1024))
         .with_state(app)
         .layer(cors);
@@ -128,4 +140,27 @@ async fn template_asset(
         ("content-security-policy", "sandbox allow-scripts; default-src 'none'; script-src http://127.0.0.1:47832/templates/; style-src 'unsafe-inline' http://127.0.0.1:47832/templates/; img-src data: http://127.0.0.1:47832/templates/; font-src data: http://127.0.0.1:47832/templates/; connect-src http://127.0.0.1:47832/templates/; base-uri 'none'; form-action 'none'"),
         ("access-control-allow-origin", "*"),
     ], bytes))
+}
+
+async fn update_widget(
+    State(app): State<AppHandle>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+    Json(value): Json<Value>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let label = format!("widget_{id}");
+    let exists = MANIFEST.get().unwrap().lock()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
+        .widgets.iter().any(|w| w.id == label && w.widget_type == "extern");
+    if !exists {
+        return Err((StatusCode::NOT_FOUND, Json(json!({"error":"Widget externe introuvable"}))));
+    }
+    // Retain the latest state if the iframe has not finished loading yet.
+    WIDGET_DATA.get_or_init(Default::default).lock()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":e.to_string()}))))?
+        .insert(label.clone(), value.clone());
+    if app.get_webview_window(&label).is_some() {
+        app.emit_to(tauri::EventTarget::webview_window(&label), "wist:data", &value)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":e.to_string()}))))?;
+    }
+    Ok(Json(json!({"updated":true})))
 }

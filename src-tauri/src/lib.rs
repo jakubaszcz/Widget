@@ -14,6 +14,7 @@ mod inits;
 mod global;
 mod manifest;
 mod integrations;
+mod widget_actions;
 mod server;
 /*#[cfg(target_os = "windows")]
 unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
@@ -182,7 +183,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
-        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data, delete_widget, external_widget_url])
+        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data, delete_widget, external_widget_url, integrations::external_widget_data, widget_actions::send_widget_action])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {
