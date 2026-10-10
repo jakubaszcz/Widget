@@ -3,6 +3,7 @@
     title: string;
     width: number;
     height: number;
+    path: string
 }
 
 export class WistClient {

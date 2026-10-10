@@ -4,6 +4,7 @@ import NoteWidget from "./natives/NoteWidget.tsx";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {PhysicalSize} from "@tauri-apps/api/dpi";
 import TimeWidget from "./natives/TimeWidget.tsx";
+import ExternalWidget from "./natives/ExternalWidget.tsx";
 import {useEffect, useRef, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
 
@@ -209,6 +210,7 @@ function App() {
                   />
               )}
               {widgetType === "time" && <TimeWidget />}
+              {widgetType === "extern" && <ExternalWidget />}
           </section>
       </main>
   );

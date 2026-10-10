@@ -85,6 +85,18 @@ unsafe fn inspect_desktop_windows() -> std::io::Result<()> {
 }*/
 
 #[tauri::command]
+fn external_widget_url(window: tauri::Window) -> Result<String, String> {
+    let manifest = MANIFEST.get().unwrap().lock().map_err(|e| e.to_string())?;
+    let widget = manifest.widgets.iter()
+        .find(|w| w.id == window.label() && w.widget_type == "extern")
+        .ok_or("Modèle externe introuvable")?;
+    if !widget.data.is_file() { return Err("Le fichier HTML du widget est absent du cache".into()); }
+    let mut url = tauri::Url::parse(&format!("http://{}/", integrations::ADDRESS)).map_err(|e| e.to_string())?;
+    url.path_segments_mut().map_err(|_| "URL invalide")?.extend(["templates", &widget.id, "index.html"]);
+    Ok(url.to_string())
+}
+
+#[tauri::command]
 fn save_note_widget(id: String, data: NoteData) -> Result<(), String> {
     println!("Widget: {id}, data: {data:?}");
     inits::manifest::widgets::widget_manifest::init(id, &data)?;
@@ -126,7 +138,20 @@ fn delete_widget(id: String) -> Result<(), String> {
         .find(|widget| widget.id == id)
     {
         if !widget.data.as_os_str().is_empty() {
-            match fs::remove_file(&widget.data) {
+            let removal = if widget.widget_type == "extern" {
+                // Only remove a verified template directory inside Wist's cache.
+                let cache = APPDATA.get().unwrap().cache.join("templates");
+                if widget.data.exists() {
+                    let root = cache.canonicalize().map_err(|e| e.to_string())?;
+                    let folder = widget.data.parent().ok_or("Dossier absent")?
+                        .canonicalize().map_err(|e| e.to_string())?;
+                    if folder == root || !folder.starts_with(&root) {
+                        return Err("Modèle situé hors du cache de Wist".into());
+                    }
+                    fs::remove_dir_all(folder)
+                } else { Ok(()) }
+            } else { fs::remove_file(&widget.data) };
+            match removal {
                 Ok(()) => {}
                 Err(err) if err.kind() == ErrorKind::NotFound => {}
                 Err(err) => return Err(err.to_string()),
@@ -157,7 +182,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(init())
-        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data, delete_widget])
+        .invoke_handler(tauri::generate_handler![create_widget, save_note_widget, load_widget_data, delete_widget, external_widget_url])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app, event| {

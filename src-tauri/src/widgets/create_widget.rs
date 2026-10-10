@@ -1,4 +1,4 @@
-﻿use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use log::error;
 use tauri::webview::cookie::time::Error;
 use tauri::window::Color;
@@ -111,31 +111,30 @@ pub fn create_widget(
 
 pub fn create_extern_widget(
     app: &tauri::AppHandle,
-    id: String, widget_type: String, size: Vector2, position: Vector2) -> tauri::Result<()> {
-    let id = format!(
-        "widget_{}",
-        id
-    );
+    id: String,
+    size: Vector2,
+    position: Vector2,
+    source: std::path::PathBuf,
+) -> Result<bool, String> {
+    use crate::global::global::APPDATA;
 
-    load_widget(app, id.to_string(), widget_type.clone(), Vector2 {
-        x: 100i32,
-        y: 100i32,
-    },
-                Vector2 { x: position.x, y: position.y },
-    )?;
+    let id = format!("widget_{id}");
+    let folder = APPDATA.get().unwrap().cache.join("templates").join(&id);
+    std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+
+    let html = folder.join("index.html");
+    std::fs::copy(source, &html).map_err(|e| e.to_string())?;
 
     add_widget(ManifestWidget {
-        id,
-        widget_type,
-        size: Vector2 {
-            x: 100i32,
-            y: 100i32,
-        },
-        position: Vector2 {
-            x: position.x,
-            y: position.y,
-        },
-        data: Default::default(),
-    }).unwrap();
-    Ok(())
+        id: id.clone(),
+        widget_type: "extern".into(),
+        size: size.clone(),
+        position: position.clone(),
+        data: html,
+    })?;
+
+    load_widget(app, id, "extern".into(), size, position)
+        .map_err(|e| e.to_string())?;
+
+    Ok(true)
 }
