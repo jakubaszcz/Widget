@@ -1,7 +1,8 @@
-﻿{
+{
   "name": "wist-sdk",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.2",
+  "description": "Connect your applications to interactive Windows desktop widgets with Wist.",
+  "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,7 +12,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   }
