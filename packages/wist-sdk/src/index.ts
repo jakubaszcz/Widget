@@ -64,6 +64,16 @@ export class WistClient {
         }
     }
 
+    async unregisterWidget(id: string): Promise<void> {
+        const response = await fetch(`${this.endpoint.replace(/\/+$/, "")}/widgets/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!response.ok) {
+            throw new Error(`Suppression refusée (HTTP ${response.status}) : ${await response.text()}`);
+        }
+    }
+
     async updateWidget<T>(id: string, value: T): Promise<void> {
         const response = await fetch(`${this.endpoint.replace(/\/+$/, "")}/widgets/${encodeURIComponent(id)}/data`, {
             method: "PUT",

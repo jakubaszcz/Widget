@@ -1,7 +1,7 @@
 use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, Method, StatusCode},
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use serde_json::{json, Value};
@@ -39,6 +39,7 @@ pub fn start(app: AppHandle) -> std::io::Result<()> {
         .route("/health", get(health))
         .route("/events", get(crate::widget_actions::events))
         .route("/widgets", post(register_widget))
+        .route("/widgets/{id}", delete(unregister_widget))
         .route("/templates/{id}/{*file}", get(template_asset))
         .route("/widgets/{id}/data", put(update_widget))
         .layer(DefaultBodyLimit::max(16 * 1024))
@@ -87,6 +88,17 @@ async fn register_widget(
         || !(120..=4096).contains(&widget.width) || !(80..=4096).contains(&widget.height) {
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error":"Identifiant ou dimensions invalides (120–4096 × 80–4096)"}))));
     }
+    let label = format!("widget_{}", widget.id);
+    let existing_type = MANIFEST.get().unwrap().lock()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
+        .widgets.iter().find(|w| w.id == label)
+        .map(|w| w.widget_type.clone());
+    if let Some(widget_type) = existing_type {
+        if widget_type != "extern" {
+            return Err((StatusCode::CONFLICT, Json(json!({"error":"Identifiant déjà utilisé par un widget natif"}))));
+        }
+        return Ok(Json(json!({"received": true, "created": false})));
+    }
     let created = tauri::async_runtime::spawn_blocking(move || create_extern_widget(
         &app, widget.id,
         Vector2 { x: widget.width as i32, y: widget.height as i32 },
@@ -104,6 +116,39 @@ async fn register_widget(
         "received": true,
         "created": created
     })))
+}
+
+async fn unregister_widget(
+    State(app): State<AppHandle>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if id.is_empty() || id.len() > 80
+        || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_') {
+        return Err((StatusCode::BAD_REQUEST, Json(json!({"error":"Identifiant invalide"}))));
+    }
+    let label = format!("widget_{id}");
+    let existing_type = MANIFEST.get().unwrap().lock()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":e.to_string()}))))?
+        .widgets.iter().find(|w| w.id == label).map(|w| w.widget_type.clone());
+    if existing_type.as_deref().is_some_and(|kind| kind != "extern") {
+        return Err((StatusCode::CONFLICT, Json(json!({"error":"Ce widget n'est pas un widget externe"}))));
+    }
+    let deleted = existing_type.is_some();
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        // This also persists the manifest and removes the cached template.
+        crate::delete_widget(label.clone())?;
+        WIDGET_DATA.get_or_init(Default::default).lock()
+            .map_err(|e| e.to_string())?.remove(&label);
+        // Never hold the manifest lock while destroying a Tauri window.
+        if let Some(window) = app.get_webview_window(&label) {
+            window.destroy().map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":e.to_string()}))))?
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":e}))))?;
+
+    Ok(Json(json!({"received": true, "deleted": deleted})))
 }
 
 async fn template_asset(
